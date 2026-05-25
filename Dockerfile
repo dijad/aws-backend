@@ -2,6 +2,7 @@
 # NestJS API for Cloud Run (port 8080, Cloud SQL via connector at runtime)
 
 FROM node:20-alpine AS build
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -14,6 +15,7 @@ COPY . .
 RUN npm run build
 
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 ENV NODE_ENV=production
