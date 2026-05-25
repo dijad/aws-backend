@@ -112,6 +112,8 @@ Luego pega los valores impresos en `.env` con `DB_TARGET=cloud-sql`.
 
 ## Cloud Run (producción)
 
+Pipeline completo (Docker + Cloud Build): [gcp-deploy.md](./gcp-deploy.md).
+
 En el servicio Cloud Run:
 
 1. Añade la instancia en **Connections → Cloud SQL**.

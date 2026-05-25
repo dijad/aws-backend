@@ -1,0 +1,63 @@
+# Cloud Build: build image → push Artifact Registry → deploy Cloud Run (API)
+#
+# Prerrequisitos:
+#   gcloud artifacts repositories create aws --repository-format=docker --location=${_REGION}
+#   Cloud SQL instance attached; secrets in Secret Manager
+#
+# Manual:
+#   gcloud builds submit --config=cloudbuild.yaml \
+#     --substitutions=_REGION=us-central1,_SERVICE=aws-api,_CLOUD_SQL_CONNECTION=PROJECT:REGION:INSTANCE,_CORS_ORIGIN=https://aws-frontend-xxx.run.app
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE: aws-api
+  _AR_REPO: aws
+  _IMAGE_NAME: api
+  _CLOUD_SQL_CONNECTION: ''
+  _CORS_ORIGIN: ''
+  _FRONTEND_URL: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:latest
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --port=8080
+      - --allow-unauthenticated
+      - --min-instances=0
+      - --max-instances=10
+      - --timeout=300
+      - --session-affinity
+      - --set-env-vars=DB_TARGET=cloud-sql,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION},DB_USER=app_user,DB_NAME=aws,NODE_ENV=production,PORT=8080,CORS_ORIGIN=${_CORS_ORIGIN},FRONTEND_URL=${_FRONTEND_URL},EMAIL_ENABLED=true
+      - --set-secrets=DB_PASSWORD=aws-db-password:latest,JWT_ACCESS_SECRET=aws-jwt-access:latest,JWT_REFRESH_SECRET=aws-jwt-refresh:latest,RESEND_API_KEY=aws-resend-api-key:latest
+      - --add-cloudsql-instances=${_CLOUD_SQL_CONNECTION}
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:latest

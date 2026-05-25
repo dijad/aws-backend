@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+coverage
+.nyc_output
+*.log
+.DS_Store
+.cloud-sql
+gcp/gcp.config.env
+README.md
+docs

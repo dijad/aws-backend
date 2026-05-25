@@ -24,6 +24,8 @@ npm run start:dev
 
 Cloud SQL (GCP): `@google-cloud/cloud-sql-connector` — ver [docs/gcp-cloud-sql.md](./docs/gcp-cloud-sql.md). En `.env` usa `DB_TARGET=cloud-sql` y las variables `GCP_*` / `DB_*`.
 
+**Despliegue en GCP (Cloud Run):** [docs/gcp-deploy.md](./docs/gcp-deploy.md) — `Dockerfile`, `cloudbuild.yaml`, Artifact Registry.
+
 The API listens on `http://localhost:3001/api`. Swagger UI is available at
 `http://localhost:3001/api/docs` — click *Authorize*, paste a token from
 `POST /auth/login`, and try requests directly from the docs.
