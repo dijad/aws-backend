@@ -1,0 +1,350 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// AUTH / RBAC
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  avatarUrl    String?
+  isActive     Boolean   @default(true)
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  refreshTokens RefreshToken[]
+
+  notesAuthored        Note[]                @relation("NoteAuthor")
+  notesReviewed        Note[]                @relation("NoteReviewer")
+  noteMentions         NoteMention[]
+  noteRecipients       NoteRecipient[]
+  noteSubNotesAuthored NoteSubNote[]
+
+  systemUpdatesRequested  SystemUpdate[]          @relation("SystemUpdateRequester")
+  systemUpdatesDevReview  SystemUpdate[]          @relation("SystemUpdateDevReviewer")
+  systemUpdatesAdminReview SystemUpdate[]         @relation("SystemUpdateAdminReviewer")
+  systemUpdateComments    SystemUpdateComment[]
+
+  featureDocsAuthored FeatureDocument[]
+  notifications       Notification[]
+
+  @@index([roleId])
+  @@index([deletedAt])
+}
+
+model Role {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  description String?
+  isSystem    Boolean @default(true)
+
+  users       User[]
+  permissions RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Permission {
+  id          String @id @default(cuid())
+  code        String @unique
+  description String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// MODULES (used as System Update dropdown AND Manual categories)
+// ---------------------------------------------------------------------------
+
+model Module {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+  order       Int     @default(0)
+
+  systemUpdates    SystemUpdate[]
+  featureDocuments FeatureDocument[]
+  changelogEntries ChangelogEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// NOTES
+// ---------------------------------------------------------------------------
+
+enum NoteStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Note {
+  id          String     @id @default(cuid())
+  authorId    String
+  title       String
+  contentJson Json
+  contentText String
+  status      NoteStatus @default(PENDING)
+
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  author     User           @relation("NoteAuthor", fields: [authorId], references: [id])
+  reviewedBy User?          @relation("NoteReviewer", fields: [reviewedById], references: [id])
+  mentions   NoteMention[]
+  recipients NoteRecipient[]
+  subNotes   NoteSubNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+}
+
+model NoteMention {
+  noteId String
+  userId String
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, userId])
+  @@index([userId])
+}
+
+model NoteRecipient {
+  noteId String
+  userId String
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, userId])
+  @@index([userId])
+}
+
+enum NoteSubNoteType {
+  REJECTION_REASON
+  COMMENT
+}
+
+model NoteSubNote {
+  id       String          @id @default(cuid())
+  noteId   String
+  authorId String
+  content  String
+  type     NoteSubNoteType @default(COMMENT)
+
+  note   Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([noteId])
+}
+
+// ---------------------------------------------------------------------------
+// SYSTEM UPDATES
+// ---------------------------------------------------------------------------
+
+enum SystemUpdateType {
+  BUG_FIX
+  ENHANCEMENT
+}
+
+enum SystemUpdatePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SystemUpdateStatus {
+  PENDING
+  DEV_APPROVED
+  DEV_REJECTED
+  ADMIN_APPROVED
+  ADMIN_REJECTED
+  COMPLETED
+}
+
+model SystemUpdate {
+  id          String               @id @default(cuid())
+  requesterId String
+  moduleId    String
+  type        SystemUpdateType
+  priority    SystemUpdatePriority
+  title       String
+  description String
+  status      SystemUpdateStatus   @default(PENDING)
+
+  devReviewedById   String?
+  devReviewedAt     DateTime?
+  adminReviewedById String?
+  adminReviewedAt   DateTime?
+  completedAt       DateTime?
+
+  requester       User                  @relation("SystemUpdateRequester", fields: [requesterId], references: [id])
+  module          Module                @relation(fields: [moduleId], references: [id])
+  devReviewedBy   User?                 @relation("SystemUpdateDevReviewer", fields: [devReviewedById], references: [id])
+  adminReviewedBy User?                 @relation("SystemUpdateAdminReviewer", fields: [adminReviewedById], references: [id])
+  comments        SystemUpdateComment[]
+  changelogEntry  ChangelogEntry?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([requesterId])
+  @@index([moduleId])
+  @@index([status])
+}
+
+enum SystemUpdateCommentType {
+  REJECTION_REASON
+  COMMENT
+}
+
+model SystemUpdateComment {
+  id             String                  @id @default(cuid())
+  systemUpdateId String
+  authorId       String
+  content        String
+  type           SystemUpdateCommentType @default(COMMENT)
+
+  systemUpdate SystemUpdate @relation(fields: [systemUpdateId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([systemUpdateId])
+}
+
+// ---------------------------------------------------------------------------
+// FEATURE MANUAL
+// ---------------------------------------------------------------------------
+
+enum FeatureDocumentStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model FeatureDocument {
+  id          String                @id @default(cuid())
+  moduleId    String
+  authorId    String
+  title       String
+  slug        String
+  contentJson Json
+  contentText String
+  status      FeatureDocumentStatus @default(DRAFT)
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@unique([moduleId, slug])
+  @@index([moduleId])
+  @@index([status])
+}
+
+model ChangelogEntry {
+  id             String   @id @default(cuid())
+  moduleId       String
+  systemUpdateId String?  @unique
+  title          String
+  summary        String
+  releasedAt     DateTime @default(now())
+
+  module       Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  systemUpdate SystemUpdate? @relation(fields: [systemUpdateId], references: [id])
+
+  @@index([moduleId])
+}
+
+// ---------------------------------------------------------------------------
+// NOTIFICATIONS
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  NOTE_PENDING
+  NOTE_MENTION
+  NOTE_RECEIVED
+  NOTE_APPROVED
+  NOTE_REJECTED
+  SYSTEM_UPDATE_NEW
+  SYSTEM_UPDATE_DEV_APPROVED
+  SYSTEM_UPDATE_DEV_REJECTED
+  SYSTEM_UPDATE_ADMIN_APPROVED
+  SYSTEM_UPDATE_ADMIN_REJECTED
+  SYSTEM_UPDATE_COMPLETED
+}
+
+enum NotificationReferenceType {
+  NOTE
+  SYSTEM_UPDATE
+}
+
+model Notification {
+  id            String                    @id @default(cuid())
+  userId        String
+  type          NotificationType
+  message       String
+  referenceId   String
+  referenceType NotificationReferenceType
+  isRead        Boolean                   @default(false)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
