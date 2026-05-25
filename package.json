@@ -16,7 +16,9 @@
     "prisma:deploy": "ts-node scripts/prisma-with-env.ts migrate deploy",
     "prisma:studio": "ts-node scripts/prisma-with-env.ts studio",
     "seed": "ts-node prisma/seed.ts",
-    "db:print-url": "ts-node scripts/print-database-url.ts"
+    "db:print-url": "ts-node scripts/print-database-url.ts",
+    "db:dump:cloud": "bash scripts/gcp/dump-from-cloud.sh",
+    "db:restore:local": "bash scripts/gcp/restore-to-docker.sh"
   },
   "dependencies": {
     "@google-cloud/cloud-sql-connector": "^1.10.0",

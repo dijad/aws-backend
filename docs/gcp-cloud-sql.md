@@ -146,6 +146,37 @@ gcloud run services update aws-api \
 | `roles/cloudsql.admin` | Solo `provision-cloud-sql.sh` |
 | `roles/secretmanager.secretAccessor` | Leer `DB_PASSWORD` en prod |
 
+## Copia de prod → Docker (DBeaver local, más simple)
+
+Sin proxy permanente: un dump y trabajas en `localhost:5432`.
+
+```bash
+cd backend
+
+# 1. Requiere: brew install cloud-sql-proxy  (y pg_dump del cliente Postgres)
+#    backend/.env con CLOUD_SQL_* / DB_USER / DB_NAME (y DB_PASSWORD o secret en GCP)
+./scripts/gcp/dump-from-cloud.sh
+
+# 2. Carga en Postgres Docker
+docker compose up -d postgres
+./scripts/gcp/restore-to-docker.sh
+
+# Atajos npm:
+npm run db:dump:cloud
+npm run db:restore:local
+```
+
+En `backend/.env` para la API local:
+
+```env
+DB_TARGET=local
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/aws?schema=public
+```
+
+**DBeaver:** `localhost` · `5432` · `postgres` / `postgres` · base `aws`.
+
+Los dumps van a `backend/dumps/` (ignorados por git). No subas dumps con datos de producción.
+
 ## Scripts en `scripts/gcp/`
 
 | Script | Descripción |
@@ -154,5 +185,7 @@ gcloud run services update aws-api \
 | `connect-local.sh` | Guía y fragmento para `.env` |
 | `verify-connection.sh` | Ejecuta `npm run db:print-url` |
 | `provision-cloud-sql.sh` | Crea instancia + DB + usuario (entornos nuevos) |
+| `dump-from-cloud.sh` | `pg_dump` vía `cloud-sql-proxy` → `dumps/aws-gcp-*.sql` |
+| `restore-to-docker.sh` | Restaura el último dump en `docker compose` Postgres |
 
 `gcp/gcp.config.env` es **opcional** (solo para scripts `gcp`); lo recomendado es definir todo en `backend/.env`.

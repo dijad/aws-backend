@@ -4,6 +4,7 @@ dist
 .env.local
 .env.cloud-sql.local
 .cloud-sql/
+dumps/
 gcp/gcp.config.env
 *.log
 .DS_Store
