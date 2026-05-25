@@ -29,15 +29,25 @@ gcloud services enable \
   secretmanager.googleapis.com
 ```
 
-## 2. Artifact Registry (una vez)
+## 2. IAM para Cloud Build (una vez)
+
+Los builds usan la cuenta `PROJECT_NUMBER-compute@developer.gserviceaccount.com`. Sin estos permisos el paso **deploy** falla con `run.services.get` o `iam.serviceaccounts.actAs`.
+
+```bash
+cd backend
+export GCP_PROJECT_ID=tu-proyecto
+./scripts/gcp/setup-cloud-build-iam.sh
+```
+
+## 3. Artifact Registry (una vez)
 
 ```bash
 gcloud artifacts repositories create aws \
   --repository-format=docker \
-  --location=us-central1
+  --location=australia-southeast1
 ```
 
-## 3. Cloud SQL
+## 4. Cloud SQL
 
 Si no tienes instancia:
 
@@ -61,7 +71,7 @@ npm run prisma:deploy
 npm run seed   # solo la primera vez
 ```
 
-## 4. Secret Manager
+## 5. Secret Manager
 
 ```bash
 echo -n "tu-db-password" | gcloud secrets create aws-db-password --data-file=-
@@ -84,7 +94,7 @@ gcloud run services update aws-api \
   --set-env-vars="CLOUD_SQL_CONNECTION_NAME=proyecto:region:instancia,DB_USER=app_user,DB_NAME=aws,EMAIL_FROM=noreply@tudominio.com"
 ```
 
-## 5. Backend (API)
+## 6. Backend (API)
 
 ### Build local (opcional)
 
@@ -98,21 +108,20 @@ docker run --rm -p 8080:8080 \
   aws-api:local
 ```
 
-### Cloud Build + deploy
+### Cloud Build + deploy (pipeline completo)
 
-Sustituye URLs y connection name:
+`cloudbuild.yaml` incluye sustituciones por defecto (región, Cloud SQL, URLs). Ajusta los valores `_…` en el archivo si cambian, luego:
 
 ```bash
 cd backend
+gcloud builds submit --config=cloudbuild.yaml --project=TU_PROYECTO
+```
 
-export PROJECT_ID="TU_PROYECTO"
-export REGION="us-central1"
-export CLOUD_SQL="proyecto:region:instancia"
-export CORS="https://PLACEHOLDER.run.app"   # actualizar tras deploy frontend
-export FRONTEND_URL="$CORS"
+Opcional: sobrescribir sin editar el archivo:
 
+```bash
 gcloud builds submit --config=cloudbuild.yaml \
-  --substitutions=_REGION=$REGION,_SERVICE=aws-api,_CLOUD_SQL_CONNECTION=$CLOUD_SQL,_CORS_ORIGIN=$CORS,_FRONTEND_URL=$FRONTEND_URL
+  --substitutions=_CORS_ORIGIN=https://tu-frontend.run.app,_FRONTEND_URL=https://tu-frontend.run.app
 ```
 
 Obtén la URL del API:
@@ -123,19 +132,16 @@ gcloud run services describe aws-api --region=$REGION --format='value(status.url
 
 Prueba: `curl https://TU-API.run.app/api/health`
 
-## 6. Frontend (Nuxt)
+## 7. Frontend (Nuxt)
 
 Las variables `NUXT_PUBLIC_*` se **bakean en el build**. Usa la URL real del API:
 
 ```bash
 cd frontend
-
-export API_URL="https://aws-api-xxxxx.run.app/api"
-export WS_URL="https://aws-api-xxxxx.run.app"
-
-gcloud builds submit --config=cloudbuild.yaml \
-  --substitutions=_REGION=$REGION,_SERVICE=aws-frontend,_API_BASE=$API_URL,_WS_BASE=$WS_URL
+gcloud builds submit --config=cloudbuild.yaml --project=TU_PROYECTO
 ```
+
+Las URLs del API (`_API_BASE`, `_WS_BASE`) están en `cloudbuild.yaml`; actualízalas tras el primer deploy del backend.
 
 URL del frontend:
 
@@ -143,7 +149,7 @@ URL del frontend:
 gcloud run services describe aws-frontend --region=$REGION --format='value(status.url)'
 ```
 
-## 7. CORS (después del frontend)
+## 8. CORS (después del frontend)
 
 Actualiza el API con la URL final del frontend:
 
@@ -153,7 +159,7 @@ gcloud run services update aws-api \
   --update-env-vars="CORS_ORIGIN=https://aws-frontend-xxxxx.run.app,FRONTEND_URL=https://aws-frontend-xxxxx.run.app"
 ```
 
-## 8. Trigger en GitHub (opcional)
+## 9. Trigger en GitHub (opcional)
 
 En Cloud Build → Triggers:
 
@@ -164,7 +170,7 @@ En Cloud Build → Triggers:
 
 Configura sustituciones `_CLOUD_SQL_CONNECTION`, `_API_BASE`, `_CORS_ORIGIN` en el trigger del frontend/backend.
 
-## 9. Checklist
+## 10. Checklist
 
 - [ ] Cloud SQL creado y migraciones aplicadas
 - [ ] Secretos creados y accesibles por Cloud Run
@@ -179,4 +185,5 @@ Configura sustituciones `_CLOUD_SQL_CONNECTION`, `_API_BASE`, `_CORS_ORIGIN` en 
 |---------|-------------|
 | `Dockerfile` | Imagen producción (puerto 8080) |
 | `.dockerignore` | Excluye `node_modules`, `.env`, etc. |
-| `cloudbuild.yaml` | Pipeline build → push → deploy |
+| `cloudbuild.yaml` | Pipeline build → push → deploy (termina solo) |
+| `scripts/gcp/setup-cloud-build-iam.sh` | Permisos IAM para Cloud Build |

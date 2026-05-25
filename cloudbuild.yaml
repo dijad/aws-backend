@@ -1,23 +1,16 @@
-# Cloud Build: build image → push Artifact Registry → deploy Cloud Run (API)
-#
-# Prerrequisitos:
-#   gcloud artifacts repositories create aws --repository-format=docker --location=${_REGION}
-#   Cloud SQL instance attached; secrets in Secret Manager
-#
-# Manual:
-#   gcloud builds submit --config=cloudbuild.yaml \
-#     --substitutions=_REGION=us-central1,_SERVICE=aws-api,_CLOUD_SQL_CONNECTION=PROJECT:REGION:INSTANCE,_CORS_ORIGIN=https://aws-frontend-xxx.run.app
+# Cloud Build: build → push Artifact Registry → deploy Cloud Run (API)
+# Runs as the Cloud Build service account (not the default Compute SA).
 
 substitutions:
   _REGION: australia-southeast1
   _SERVICE: aws-api
   _AR_REPO: aws
   _IMAGE_NAME: api
-  _CLOUD_SQL_CONNECTION: ''
+  _CLOUD_SQL_CONNECTION: project-e11f6390-f102-4dc8-bc9:australia-southeast1:free-trial-first-project
   _DB_USER: ADMIN
   _DB_NAME: AWS
-  _CORS_ORIGIN: ''
-  _FRONTEND_URL: ''
+  _CORS_ORIGIN: https://aws-frontend-281263231105.australia-southeast1.run.app
+  _FRONTEND_URL: https://aws-frontend-281263231105.australia-southeast1.run.app
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -39,26 +32,30 @@ steps:
       - push
       - --all-tags
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}
+    waitFor: ['build']
 
   - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - ${_SERVICE}
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$BUILD_ID
-      - --region=${_REGION}
-      - --platform=managed
-      - --port=8080
-      - --allow-unauthenticated
-      - --min-instances=0
-      - --max-instances=10
-      - --timeout=300
-      - --session-affinity
-      - --set-env-vars=DB_TARGET=cloud-sql,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION},DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},NODE_ENV=production,CORS_ORIGIN=${_CORS_ORIGIN},FRONTEND_URL=${_FRONTEND_URL},EMAIL_ENABLED=true
-      - --set-secrets=DB_PASSWORD=aws-db-password:latest,JWT_ACCESS_SECRET=aws-jwt-access:latest,JWT_REFRESH_SECRET=aws-jwt-refresh:latest,RESEND_API_KEY=aws-resend-api-key:latest
-      - --add-cloudsql-instances=${_CLOUD_SQL_CONNECTION}
+      - -ceu
+      - |
+        gcloud run deploy "${_SERVICE}" \
+          --project="${PROJECT_ID}" \
+          --image="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_IMAGE_NAME}:latest" \
+          --region="${_REGION}" \
+          --platform=managed \
+          --port=8080 \
+          --allow-unauthenticated \
+          --min-instances=0 \
+          --max-instances=10 \
+          --timeout=300 \
+          --session-affinity \
+          --quiet \
+          --set-env-vars="DB_TARGET=cloud-sql,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION},DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},NODE_ENV=production,CORS_ORIGIN=${_CORS_ORIGIN},FRONTEND_URL=${_FRONTEND_URL},EMAIL_ENABLED=true" \
+          --set-secrets="DB_PASSWORD=aws-db-password:latest,JWT_ACCESS_SECRET=aws-jwt-access:latest,JWT_REFRESH_SECRET=aws-jwt-refresh:latest,RESEND_API_KEY=aws-resend-api-key:latest" \
+          --add-cloudsql-instances="${_CLOUD_SQL_CONNECTION}"
+    waitFor: ['push']
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$BUILD_ID
