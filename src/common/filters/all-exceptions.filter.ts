@@ -26,6 +26,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.getStatus();
       const r = exception.getResponse();
       body = typeof r === 'string' ? { message: r } : (r as Record<string, unknown>);
+    } else if (
+      exception instanceof Prisma.PrismaClientValidationError ||
+      (exception instanceof Error &&
+        exception.name === 'PrismaClientValidationError')
+    ) {
+      this.logger.error(
+        exception instanceof Error ? exception.message : String(exception),
+        exception instanceof Error ? exception.stack : undefined,
+      );
+      status = HttpStatus.BAD_REQUEST;
+      body = {
+        message:
+          'The request could not be processed. Please refresh the page and try again.',
+        code: 'PRISMA_VALIDATION',
+      };
     } else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       if (exception.code === 'P2002') {
         status = HttpStatus.CONFLICT;
@@ -39,7 +54,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       this.logger.error(exception.message, exception.stack);
-      body = { message: exception.message };
+      const isPrismaLike =
+        exception.message.includes('prisma') ||
+        exception.message.includes('Invalid `') ||
+        exception.message.includes('Unknown argument');
+      body = {
+        message: isPrismaLike
+          ? 'Something went wrong while saving. Please try again.'
+          : exception.message,
+      };
     }
 
     response.status(status).json({

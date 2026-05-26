@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -92,5 +93,15 @@ export class SystemUpdatesController {
     @Body() dto: SystemUpdateCommentDto,
   ) {
     return this.service.addComment(me, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('SYSTEM_UPDATE_DELETE')
+  @ApiOperation({
+    summary:
+      'Logical delete (sets deletedAt). Requires SYSTEM_UPDATE_DELETE',
+  })
+  remove(@Param('id') id: string) {
+    return this.service.softDelete(id);
   }
 }

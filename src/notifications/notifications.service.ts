@@ -45,7 +45,7 @@ export class NotificationsService {
         this.emitNoteSync(n.userId, sync);
       }
     }
-    void this.dispatchEmails(created);
+    await this.dispatchEmails(created);
     return created;
   }
 
@@ -155,11 +155,15 @@ export class NotificationsService {
   async notifyRoles(
     roleCodes: string[],
     payload: Omit<CreateNotificationInput, 'userId'>,
+    options?: { excludeUserIds?: string[] },
   ) {
     const users = await this.prisma.user.findMany({
       where: {
         deletedAt: null,
         isActive: true,
+        ...(options?.excludeUserIds?.length
+          ? { id: { notIn: options.excludeUserIds } }
+          : {}),
         role: { code: { in: roleCodes } },
       },
       select: { id: true },
@@ -177,6 +181,60 @@ export class NotificationsService {
     const usersById = new Map(
       users.map((u) => [u.id, { email: u.email, name: u.name }]),
     );
-    await this.email.sendForNotifications(notifications, usersById);
+    const referenceTitles = await this.resolveReferenceTitles(notifications);
+    await this.email.sendForNotifications(
+      notifications,
+      usersById,
+      referenceTitles,
+    );
+  }
+
+  private async resolveReferenceTitles(
+    notifications: Notification[],
+  ): Promise<Map<string, string>> {
+    const noteIds = [
+      ...new Set(
+        notifications
+          .filter((n) => n.referenceType === NotificationReferenceType.NOTE)
+          .map((n) => n.referenceId),
+      ),
+    ];
+    const systemUpdateIds = [
+      ...new Set(
+        notifications
+          .filter(
+            (n) =>
+              n.referenceType === NotificationReferenceType.SYSTEM_UPDATE,
+          )
+          .map((n) => n.referenceId),
+      ),
+    ];
+
+    const [notes, systemUpdates] = await Promise.all([
+      noteIds.length
+        ? this.prisma.note.findMany({
+            where: { id: { in: noteIds }, deletedAt: null },
+            select: { id: true, title: true },
+          })
+        : [],
+      systemUpdateIds.length
+        ? this.prisma.systemUpdate.findMany({
+            where: { id: { in: systemUpdateIds }, deletedAt: null },
+            select: { id: true, title: true },
+          })
+        : [],
+    ]);
+
+    const titles = new Map<string, string>();
+    for (const note of notes) {
+      titles.set(`${NotificationReferenceType.NOTE}:${note.id}`, note.title);
+    }
+    for (const su of systemUpdates) {
+      titles.set(
+        `${NotificationReferenceType.SYSTEM_UPDATE}:${su.id}`,
+        su.title,
+      );
+    }
+    return titles;
   }
 }

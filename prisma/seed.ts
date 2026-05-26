@@ -41,6 +41,7 @@ const PERMISSIONS = [
   { code: 'NOTE_CREATE', description: 'Create notes' },
   { code: 'NOTE_SKIP_APPROVAL', description: 'Publish notes without approval' },
   { code: 'NOTE_APPROVE_REJECT', description: 'Approve or reject notes' },
+  { code: 'NOTE_DELETE', description: 'Delete notes (logical)' },
   { code: 'SYSTEM_UPDATE_CREATE', description: 'Create system update requests' },
   {
     code: 'SYSTEM_UPDATE_REVIEW_AS_DEV',
@@ -49,6 +50,10 @@ const PERMISSIONS = [
   {
     code: 'SYSTEM_UPDATE_REVIEW_AS_ADMIN',
     description: 'Review system updates as administrator',
+  },
+  {
+    code: 'SYSTEM_UPDATE_DELETE',
+    description: 'Delete system update requests (logical)',
   },
   { code: 'MANUAL_EDIT', description: 'Create and edit feature documents' },
   { code: 'MANUAL_PUBLISH', description: 'Publish feature documents' },

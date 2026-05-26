@@ -42,6 +42,8 @@ const SU_INCLUDE = {
   },
 } satisfies Prisma.SystemUpdateInclude;
 
+const NOT_DELETED = { deletedAt: null } as const;
+
 @Injectable()
 export class SystemUpdatesService {
   constructor(
@@ -54,28 +56,33 @@ export class SystemUpdatesService {
     const isAdmin = user.permissions.includes('SYSTEM_UPDATE_REVIEW_AS_ADMIN');
 
     const where: Prisma.SystemUpdateWhereInput = (() => {
+      const base = NOT_DELETED;
       switch (query.scope) {
         case 'mine':
-          return { requesterId: user.id };
+          return { ...base, requesterId: user.id };
         case 'inbox':
-          if (isAdmin) return { status: { in: ['PENDING', 'DEV_APPROVED'] } };
-          if (isDev) return { status: 'PENDING' };
+          if (isAdmin)
+            return { ...base, status: { in: ['PENDING', 'DEV_APPROVED'] } };
+          if (isDev) return { ...base, status: 'PENDING' };
           throw new ForbiddenException();
         case 'pending':
           if (!(isAdmin || isDev)) throw new ForbiddenException();
-          return { status: 'PENDING' };
+          return { ...base, status: 'PENDING' };
         case 'approved':
-          return { status: 'ADMIN_APPROVED' };
+          return { ...base, status: 'ADMIN_APPROVED' };
         case 'completed':
-          return { status: 'COMPLETED' };
+          return { ...base, status: 'COMPLETED' };
         case 'rejected':
-          return { status: { in: ['DEV_REJECTED', 'ADMIN_REJECTED'] } };
+          return {
+            ...base,
+            status: { in: ['DEV_REJECTED', 'ADMIN_REJECTED'] },
+          };
         case 'all':
           if (!(isAdmin || isDev)) throw new ForbiddenException();
-          return {};
+          return base;
         default:
-          if (isAdmin || isDev) return {};
-          return { requesterId: user.id };
+          if (isAdmin || isDev) return base;
+          return { ...base, requesterId: user.id };
       }
     })();
 
@@ -87,8 +94,8 @@ export class SystemUpdatesService {
   }
 
   async byId(id: string) {
-    const su = await this.prisma.systemUpdate.findUnique({
-      where: { id },
+    const su = await this.prisma.systemUpdate.findFirst({
+      where: { id, ...NOT_DELETED },
       include: SU_INCLUDE,
     });
     if (!su) throw new NotFoundException('System update not found');
@@ -115,18 +122,24 @@ export class SystemUpdatesService {
       include: SU_INCLUDE,
     });
 
-    await this.notifications.notifyRoles(['ADMIN', 'DEVELOPER'], {
-      type: NotificationType.SYSTEM_UPDATE_NEW,
-      message: `Nueva solicitud (${dto.type === 'BUG_FIX' ? 'Bug Fix' : 'Enhancement'}): ${dto.title}`,
-      referenceId: created.id,
-      referenceType: NotificationReferenceType.SYSTEM_UPDATE,
-    });
+    await this.notifications.notifyRoles(
+      ['ADMIN', 'DEVELOPER'],
+      {
+        type: NotificationType.SYSTEM_UPDATE_NEW,
+        message: `Nueva solicitud (${dto.type === 'BUG_FIX' ? 'Bug Fix' : 'Enhancement'}): ${dto.title}`,
+        referenceId: created.id,
+        referenceType: NotificationReferenceType.SYSTEM_UPDATE,
+      },
+      { excludeUserIds: [requesterId] },
+    );
 
     return created;
   }
 
   async devReview(reviewerId: string, id: string, dto: ReviewDecisionDto) {
-    const su = await this.prisma.systemUpdate.findUnique({ where: { id } });
+    const su = await this.prisma.systemUpdate.findFirst({
+      where: { id, ...NOT_DELETED },
+    });
     if (!su) throw new NotFoundException('System update not found');
     if (su.status !== 'PENDING') {
       throw new BadRequestException(
@@ -201,7 +214,9 @@ export class SystemUpdatesService {
   }
 
   async adminReview(reviewerId: string, id: string, dto: ReviewDecisionDto) {
-    const su = await this.prisma.systemUpdate.findUnique({ where: { id } });
+    const su = await this.prisma.systemUpdate.findFirst({
+      where: { id, ...NOT_DELETED },
+    });
     if (!su) throw new NotFoundException('System update not found');
     if (!['PENDING', 'DEV_APPROVED'].includes(su.status)) {
       throw new BadRequestException(
@@ -278,7 +293,9 @@ export class SystemUpdatesService {
   }
 
   async complete(reviewerId: string, id: string) {
-    const su = await this.prisma.systemUpdate.findUnique({ where: { id } });
+    const su = await this.prisma.systemUpdate.findFirst({
+      where: { id, ...NOT_DELETED },
+    });
     if (!su) throw new NotFoundException('System update not found');
     if (su.status !== 'ADMIN_APPROVED') {
       throw new BadRequestException(
@@ -326,7 +343,9 @@ export class SystemUpdatesService {
     id: string,
     dto: SystemUpdateCommentDto,
   ) {
-    const su = await this.prisma.systemUpdate.findUnique({ where: { id } });
+    const su = await this.prisma.systemUpdate.findFirst({
+      where: { id, ...NOT_DELETED },
+    });
     if (!su) throw new NotFoundException('System update not found');
     return this.prisma.systemUpdateComment.create({
       data: {
@@ -340,6 +359,19 @@ export class SystemUpdatesService {
           select: { id: true, name: true, email: true, avatarUrl: true },
         },
       },
+    });
+  }
+
+  async softDelete(id: string) {
+    const su = await this.prisma.systemUpdate.findFirst({
+      where: { id, ...NOT_DELETED },
+    });
+    if (!su) throw new NotFoundException('System update not found');
+
+    return this.prisma.systemUpdate.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      include: SU_INCLUDE,
     });
   }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -14,6 +15,7 @@ import {
   ListNotesQueryDto,
   RejectNoteDto,
 } from './dto/note.dto';
+import { SearchCitableNotesQueryDto } from './dto/search-citable-notes.dto';
 import { Permissions } from '../common/decorators/permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthUser } from '../common/types/auth-user.type';
@@ -31,6 +33,18 @@ export class NotesController {
   })
   list(@CurrentUser() me: AuthUser, @Query() query: ListNotesQueryDto) {
     return this.notes.list(me, query);
+  }
+
+  @Get('search/citable')
+  @ApiOperation({
+    summary:
+      'Search notes the current user may cite with # in the editor (autocomplete).',
+  })
+  searchCitable(
+    @CurrentUser() me: AuthUser,
+    @Query() query: SearchCitableNotesQueryDto,
+  ) {
+    return this.notes.searchCitable(me, query.q);
   }
 
   @Get(':id')
@@ -78,5 +92,14 @@ export class NotesController {
     @Body() dto: CreateSubNoteDto,
   ) {
     return this.notes.addSubNote(me, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('NOTE_DELETE')
+  @ApiOperation({
+    summary: 'Logical delete (sets deletedAt). Requires NOTE_DELETE',
+  })
+  remove(@Param('id') id: string) {
+    return this.notes.softDelete(id);
   }
 }

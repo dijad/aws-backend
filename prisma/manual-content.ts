@@ -67,10 +67,10 @@ export interface ManualDocSeed {
 export const GLOBAL_NOTES_MANUAL_DOCS: ManualDocSeed[] = [
   {
     slug: 'overview',
-    title: 'Overview — What is Global Notes?',
+    title: 'Overview — What is AWS Workspace Notes?',
     ...doc(
       p(
-        'Global Notes is the AWS workspace application for sharing internal knowledge, coordinating approvals on notes, and managing system change requests (bug fixes and enhancements). Everything lives under the Global Notes area in the left sidebar.',
+        'AWS Workspace Notes is the application for sharing internal knowledge, coordinating approvals on notes, and managing system change requests (bug fixes and enhancements). Everything lives under the Notes and Requests areas in the left sidebar.',
       ),
       h(2, 'Purpose'),
       bullet([
@@ -106,7 +106,7 @@ export const GLOBAL_NOTES_MANUAL_DOCS: ManualDocSeed[] = [
         'Notes are rich-text messages for internal communication. Every new note starts in Pending status until someone with approval rights approves or rejects it.',
       ),
       h(2, 'Opening Notes'),
-      p('Go to Global Notes → Notes → Notes (or /global-notes). The list shows cards with author, title, excerpt, status badge, and any @mentions or recipients.'),
+      p('Go to Notes → Notes (or /global-notes). The list shows cards with author, title, excerpt, status badge, and any @mentions or recipients.'),
       h(2, 'List filters (tabs)'),
       bullet([
         'My notes — notes you authored.',
@@ -119,9 +119,20 @@ export const GLOBAL_NOTES_MANUAL_DOCS: ManualDocSeed[] = [
         'Click New note (requires NOTE_CREATE).',
         'Enter a title (max 160 characters).',
         'Write content in the rich editor. Type @ followed by a name to mention users; mentioned users can be notified when the note is approved.',
+        'Type # to cite another note inside the content. Select it from the suggestion list to insert a clickable #NoteTitle reference.',
         'Under Recipients, select one or more users who should receive the note after approval (multi-select). Recipients are not the same as mentions: mentions highlight people in the text; recipients define who gets the note in their Received tab.',
         'Click Submit for approval. The note stays Pending until reviewed.',
       ]),
+      h(2, 'Link notes inside notes (#)'),
+      ordered([
+        'In the note editor, type # and then part of a note title.',
+        'Choose a result from the dropdown with arrow keys + Enter, or click it.',
+        'The reference is inserted as a #label token and rendered as a clickable link in note detail.',
+        'When someone opens the note, they can click that #reference to navigate directly to the linked note.',
+      ]),
+      p(
+        'Use #references to connect context between related notes (for example: decision note -> implementation note -> follow-up note).',
+      ),
       h(2, 'Note statuses'),
       bullet([
         'Pending — awaiting approval; author can still open the note and add comments.',
@@ -129,7 +140,7 @@ export const GLOBAL_NOTES_MANUAL_DOCS: ManualDocSeed[] = [
         'Rejected — author sees a rejection reason (private to the author); only they receive that feedback via a special comment type.',
       ]),
       h(2, 'Note detail page'),
-      p('Open any card to see full content, author, timestamps, mentions, recipients, status, and a comment thread. The author or an approver can add general comments. Rejection reasons appear highlighted in red and are labeled Rejection reason.'),
+      p('Open any card to see full content, author, timestamps, mentions, recipients, status, and a comment thread. The detail view is now split into clear sections: header, participants (mentions/recipients), content panel, actions, and comments. The author or an approver can add general comments. Rejection reasons appear highlighted in red and are labeled Rejection reason.'),
       h(2, 'Tips'),
       bullet([
         'Use mentions when you want someone referenced in the text; use recipients when you want them to reliably see the note after approval.',
@@ -173,17 +184,17 @@ export const GLOBAL_NOTES_MANUAL_DOCS: ManualDocSeed[] = [
     title: 'System updates — Change requests',
     ...doc(
       p(
-        'System updates are formal requests for bug fixes or enhancements. Each request is tied to a module (Global Notes), has a type, priority, and description, and moves through Developer then Administrator review.',
+        'System updates are formal requests for bug fixes or enhancements. Each request is tied to a module (AWS Workspace Notes), has a type, priority, and description, and moves through Developer then Administrator review.',
       ),
       h(2, 'Opening System updates'),
-      p('Go to Global Notes → Requests → System updates. Use All to see every request you can access, or Mine for requests you submitted.'),
+      p('Go to Requests → System updates. Use All to see every request you can access, or Mine for requests you submitted.'),
       h(2, 'Search'),
       p('The search box filters the current list by title, description, module name, or requester name (client-side).'),
       h(2, 'Creating a request'),
       ordered([
         'Click New request (requires SYSTEM_UPDATE_CREATE).',
         'Type: Bug fix or Enhancement.',
-        'Module: select Global Notes (the product area affected).',
+        'Module: select AWS Workspace Notes (the product area affected).',
         'Title: short summary (max 160 characters).',
         'Priority: Low, Medium, High, or Critical.',
         'Description: steps to reproduce, expected behavior, business justification, or acceptance criteria.',
@@ -226,7 +237,7 @@ export const GLOBAL_NOTES_MANUAL_DOCS: ManualDocSeed[] = [
       ordered([
         'When status is ADMIN_APPROVED, a Developer uses Mark as completed on the request detail.',
         'Status becomes COMPLETED and completedAt is set.',
-        'A changelog entry is auto-created on the Global Notes module (visible on the manual module page sidebar).',
+        'A changelog entry is auto-created on the AWS Workspace Notes module (visible on the manual module page sidebar).',
       ]),
       h(2, 'Best practices'),
       bullet([

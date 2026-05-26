@@ -133,18 +133,22 @@ model Note {
 
   reviewedById String?
   reviewedAt   DateTime?
+  deletedAt    DateTime?
 
   author     User           @relation("NoteAuthor", fields: [authorId], references: [id])
   reviewedBy User?          @relation("NoteReviewer", fields: [reviewedById], references: [id])
   mentions   NoteMention[]
   recipients NoteRecipient[]
   subNotes   NoteSubNote[]
+  citationsFrom NoteCitation[] @relation("NoteCitationsFrom")
+  citedIn       NoteCitation[] @relation("NoteCitationsTo")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([authorId])
   @@index([status])
+  @@index([deletedAt])
 }
 
 model NoteMention {
@@ -156,6 +160,17 @@ model NoteMention {
 
   @@id([noteId, userId])
   @@index([userId])
+}
+
+model NoteCitation {
+  sourceNoteId String
+  citedNoteId  String
+
+  source Note @relation("NoteCitationsFrom", fields: [sourceNoteId], references: [id], onDelete: Cascade)
+  cited  Note @relation("NoteCitationsTo", fields: [citedNoteId], references: [id], onDelete: Cascade)
+
+  @@id([sourceNoteId, citedNoteId])
+  @@index([citedNoteId])
 }
 
 model NoteRecipient {
@@ -229,6 +244,7 @@ model SystemUpdate {
   adminReviewedById String?
   adminReviewedAt   DateTime?
   completedAt       DateTime?
+  deletedAt         DateTime?
 
   requester       User                  @relation("SystemUpdateRequester", fields: [requesterId], references: [id])
   module          Module                @relation(fields: [moduleId], references: [id])
@@ -243,6 +259,7 @@ model SystemUpdate {
   @@index([requesterId])
   @@index([moduleId])
   @@index([status])
+  @@index([deletedAt])
 }
 
 enum SystemUpdateCommentType {
