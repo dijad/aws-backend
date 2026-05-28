@@ -126,7 +126,7 @@ export class SystemUpdatesService {
       ['ADMIN', 'DEVELOPER'],
       {
         type: NotificationType.SYSTEM_UPDATE_NEW,
-        message: `Nueva solicitud (${dto.type === 'BUG_FIX' ? 'Bug Fix' : 'Enhancement'}): ${dto.title}`,
+        message: `New request (${dto.type === 'BUG_FIX' ? 'Bug Fix' : 'Enhancement'}): ${dto.title}`,
         referenceId: created.id,
         referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       },
@@ -160,7 +160,7 @@ export class SystemUpdatesService {
 
       await this.notifications.notifyRoles(['ADMIN'], {
         type: NotificationType.SYSTEM_UPDATE_DEV_APPROVED,
-        message: `Solicitud aprobada por Dev, pendiente de Admin: ${su.title}`,
+        message: `Request approved by Dev, pending Admin review: ${su.title}`,
         referenceId: su.id,
         referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       });
@@ -168,7 +168,7 @@ export class SystemUpdatesService {
         {
           userId: su.requesterId,
           type: NotificationType.SYSTEM_UPDATE_DEV_APPROVED,
-          message: `Tu solicitud "${su.title}" fue aprobada por un Developer y está pendiente de Admin`,
+          message: `Your request "${su.title}" was approved by a Developer and is pending Admin review`,
           referenceId: su.id,
           referenceType: NotificationReferenceType.SYSTEM_UPDATE,
         },
@@ -204,7 +204,7 @@ export class SystemUpdatesService {
       {
         userId: su.requesterId,
         type: NotificationType.SYSTEM_UPDATE_DEV_REJECTED,
-        message: `Tu solicitud "${su.title}" fue rechazada por un Developer`,
+        message: `Your request "${su.title}" was rejected by a Developer`,
         referenceId: su.id,
         referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       },
@@ -240,7 +240,7 @@ export class SystemUpdatesService {
         {
           userId: su.requesterId,
           type: NotificationType.SYSTEM_UPDATE_ADMIN_APPROVED,
-          message: `Tu solicitud "${su.title}" fue aprobada`,
+          message: `Your request "${su.title}" was approved`,
           referenceId: su.id,
           referenceType: NotificationReferenceType.SYSTEM_UPDATE,
         },
@@ -248,7 +248,7 @@ export class SystemUpdatesService {
       // Ping developers about new work in their tray
       await this.notifications.notifyRoles(['DEVELOPER'], {
         type: NotificationType.SYSTEM_UPDATE_ADMIN_APPROVED,
-        message: `Solicitud aprobada disponible para desarrollo: ${su.title}`,
+        message: `Approved request ready for development: ${su.title}`,
         referenceId: su.id,
         referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       });
@@ -283,7 +283,7 @@ export class SystemUpdatesService {
       {
         userId: su.requesterId,
         type: NotificationType.SYSTEM_UPDATE_ADMIN_REJECTED,
-        message: `Tu solicitud "${su.title}" fue rechazada por Admin`,
+        message: `Your request "${su.title}" was rejected by Admin`,
         referenceId: su.id,
         referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       },
@@ -330,7 +330,7 @@ export class SystemUpdatesService {
       {
         userId: su.requesterId,
         type: NotificationType.SYSTEM_UPDATE_COMPLETED,
-        message: `Tu solicitud "${su.title}" fue completada`,
+        message: `Your request "${su.title}" was completed`,
         referenceId: su.id,
         referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       },

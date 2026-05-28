@@ -207,7 +207,7 @@ export class NotesService {
       (m) => ({
         userId: m.userId,
         type: NotificationType.NOTE_MENTION,
-        message: `Has sido etiquetado en una nota: "${note.title}"`,
+        message: `You were tagged in a note: "${note.title}"`,
         referenceId: note.id,
         referenceType: NotificationReferenceType.NOTE,
         noteSync: { note, add: ['mentions' as const] },
@@ -219,7 +219,7 @@ export class NotesService {
       .map((r) => ({
         userId: r.userId,
         type: NotificationType.NOTE_RECEIVED,
-        message: `Has recibido una nota: "${note.title}"`,
+        message: `You received a note: "${note.title}"`,
         referenceId: note.id,
         referenceType: NotificationReferenceType.NOTE,
         noteSync: { note, add: ['received' as const] },
@@ -234,7 +234,7 @@ export class NotesService {
       payloads.push({
         userId: note.authorId,
         type: NotificationType.NOTE_APPROVED,
-        message: `Tu nota "${note.title}" fue aprobada`,
+        message: `Your note "${note.title}" was approved`,
         referenceId: note.id,
         referenceType: NotificationReferenceType.NOTE,
         noteSync: { note, add: ['mine'] },
@@ -316,7 +316,7 @@ export class NotesService {
         'NOTE_APPROVE_REJECT',
         {
           type: NotificationType.NOTE_PENDING,
-          message: `Nueva nota pendiente de aprobación: "${note.title}"`,
+          message: `New note pending approval: "${note.title}"`,
           referenceId: note.id,
           referenceType: NotificationReferenceType.NOTE,
         },
@@ -392,7 +392,7 @@ export class NotesService {
       {
         userId: note.authorId,
         type: NotificationType.NOTE_REJECTED,
-        message: `Tu nota "${note.title}" fue rechazada`,
+        message: `Your note "${note.title}" was rejected`,
         referenceId: note.id,
         referenceType: NotificationReferenceType.NOTE,
         noteSync: { note: updated, add: ['mine'] },

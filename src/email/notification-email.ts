@@ -59,11 +59,11 @@ export function buildNotificationEmailContent(params: {
     params.referenceType,
     params.referenceId,
   );
-  const referenceLabel = isNote ? 'Nota' : 'Solicitud';
+  const referenceLabel = isNote ? 'Note' : 'Request';
   const referenceTitle =
     params.referenceTitle?.trim() ||
     extractTitleFromMessage(params.message) ||
-    (isNote ? 'Ver nota' : 'Ver solicitud');
+    (isNote ? 'View note' : 'View request');
   const appName = EMAIL_APP_NAME;
 
   const typeMeta: Record<
@@ -71,65 +71,65 @@ export function buildNotificationEmailContent(params: {
     { subject: string; heading: string; preview: string }
   > = {
     NOTE_PENDING: {
-      subject: 'Nota pendiente de aprobación',
-      heading: 'Nueva nota por revisar',
-      preview: 'Hay una nota esperando tu aprobación o rechazo.',
+      subject: 'Note pending approval',
+      heading: 'New note to review',
+      preview: 'A note is waiting for your approval or rejection.',
     },
     NOTE_MENTION: {
-      subject: 'Te etiquetaron en una nota',
-      heading: 'Fuiste mencionado en una nota',
-      preview: 'Alguien te etiquetó en una nota aprobada.',
+      subject: 'You were tagged in a note',
+      heading: 'You were mentioned in a note',
+      preview: 'Someone tagged you in an approved note.',
     },
     NOTE_RECEIVED: {
-      subject: 'Recibiste una nota',
-      heading: 'Tienes una nota nueva',
-      preview: 'Te enviaron una nota que ya fue aprobada.',
+      subject: 'You received a note',
+      heading: 'You have a new note',
+      preview: 'You received a note that has already been approved.',
     },
     NOTE_APPROVED: {
-      subject: 'Tu nota fue aprobada',
-      heading: 'Nota aprobada',
-      preview: 'Un revisor aprobó tu nota.',
+      subject: 'Your note was approved',
+      heading: 'Note approved',
+      preview: 'A reviewer approved your note.',
     },
     NOTE_REJECTED: {
-      subject: 'Tu nota fue rechazada',
-      heading: 'Nota rechazada',
-      preview: 'Un revisor rechazó tu nota.',
+      subject: 'Your note was rejected',
+      heading: 'Note rejected',
+      preview: 'A reviewer rejected your note.',
     },
     SYSTEM_UPDATE_NEW: {
-      subject: 'Nueva solicitud de actualización',
-      heading: 'Solicitud nueva por revisar',
-      preview: 'Hay una solicitud de sistema que requiere atención.',
+      subject: 'New system update request',
+      heading: 'New request to review',
+      preview: 'A system request needs your attention.',
     },
     SYSTEM_UPDATE_DEV_APPROVED: {
-      subject: 'Solicitud aprobada por Developer',
-      heading: 'Aprobación de Developer',
-      preview: 'Una solicitud avanzó en el flujo de aprobación.',
+      subject: 'Request approved by Developer',
+      heading: 'Developer approval',
+      preview: 'A request moved forward in the approval flow.',
     },
     SYSTEM_UPDATE_DEV_REJECTED: {
-      subject: 'Solicitud rechazada por Developer',
-      heading: 'Rechazo de Developer',
-      preview: 'Una solicitud fue rechazada en revisión de Developer.',
+      subject: 'Request rejected by Developer',
+      heading: 'Developer rejection',
+      preview: 'A request was rejected during Developer review.',
     },
     SYSTEM_UPDATE_ADMIN_APPROVED: {
-      subject: 'Solicitud aprobada por Admin',
-      heading: 'Aprobación de Admin',
-      preview: 'Una solicitud fue aprobada o está lista para desarrollo.',
+      subject: 'Request approved by Admin',
+      heading: 'Admin approval',
+      preview: 'A request was approved and is ready for development.',
     },
     SYSTEM_UPDATE_ADMIN_REJECTED: {
-      subject: 'Solicitud rechazada por Admin',
-      heading: 'Rechazo de Admin',
-      preview: 'Una solicitud fue rechazada por Admin.',
+      subject: 'Request rejected by Admin',
+      heading: 'Admin rejection',
+      preview: 'A request was rejected by Admin.',
     },
     SYSTEM_UPDATE_COMPLETED: {
-      subject: 'Solicitud completada',
-      heading: 'Solicitud finalizada',
-      preview: 'Tu solicitud de actualización fue marcada como completada.',
+      subject: 'Request completed',
+      heading: 'Request completed',
+      preview: 'Your system update request was marked as completed.',
     },
   };
 
   const meta = typeMeta[params.type];
-  const greeting = params.userName ? `Hola ${escapeHtml(params.userName)},` : 'Hola,';
-  const actionLabel = isNote ? 'Abrir nota' : 'Abrir solicitud';
+  const greeting = params.userName ? `Hi ${escapeHtml(params.userName)},` : 'Hi,';
+  const actionLabel = isNote ? 'Open note' : 'Open request';
 
   return {
     subject: `${meta.subject}: ${referenceTitle} · ${appName}`,
@@ -163,7 +163,7 @@ function extractTitleFromMessage(message: string): string | null {
 
 export function renderNotificationEmailHtml(content: NotificationEmailContent): string {
   return `<!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -193,7 +193,7 @@ export function renderNotificationEmailHtml(content: NotificationEmailContent): 
     </tr>
     <tr>
       <td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.5;color:${THEME.inkFaint};">
-        Recibiste este correo porque tienes una notificación en ${escapeHtml(EMAIL_APP_TAGLINE)}.
+        You received this email because you have a notification in ${escapeHtml(EMAIL_APP_TAGLINE)}.
       </td>
     </tr>
   </table>

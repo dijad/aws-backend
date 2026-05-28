@@ -37,7 +37,7 @@ describe('referenceDetailUrl', () => {
 
 describe('buildNotificationEmailContent', () => {
   const base = {
-    message: 'Nueva nota pendiente: "Mi título"',
+    message: 'New pending note: "My title"',
     referenceId: 'abc123',
     frontendUrl: 'http://localhost:3000',
     userName: 'Diego',
@@ -48,17 +48,17 @@ describe('buildNotificationEmailContent', () => {
       ...base,
       type: NotificationType.NOTE_PENDING,
       referenceType: NotificationReferenceType.NOTE,
-      referenceTitle: 'Mi título',
+      referenceTitle: 'My title',
     });
     expect(content.actionUrl).toBe('http://localhost:3000/global-notes/abc123');
-    expect(content.referenceTitle).toBe('Mi título');
-    expect(content.subject).toContain('Mi título');
+    expect(content.referenceTitle).toBe('My title');
+    expect(content.subject).toContain('My title');
   });
 
   it('uses direct request URL for new system updates', () => {
     const content = buildNotificationEmailContent({
       ...base,
-      message: 'Nueva solicitud: "Fix login"',
+      message: 'New request: "Fix login"',
       type: NotificationType.SYSTEM_UPDATE_NEW,
       referenceType: NotificationReferenceType.SYSTEM_UPDATE,
       referenceTitle: 'Fix login',
@@ -75,6 +75,6 @@ describe('buildNotificationEmailContent', () => {
       type: NotificationType.NOTE_MENTION,
       referenceType: NotificationReferenceType.NOTE,
     });
-    expect(content.referenceTitle).toBe('Mi título');
+    expect(content.referenceTitle).toBe('My title');
   });
 });
