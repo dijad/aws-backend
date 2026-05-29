@@ -93,10 +93,11 @@ async function runSeed(prisma: PrismaClient) {
   console.log('Seeding database...');
 
   for (const role of ROLES) {
+    const isSystem = role.code === 'ADMIN';
     await prisma.role.upsert({
       where: { code: role.code },
-      update: { name: role.name, description: role.description },
-      create: { ...role, isSystem: true },
+      update: { name: role.name, description: role.description, isSystem },
+      create: { ...role, isSystem },
     });
   }
 

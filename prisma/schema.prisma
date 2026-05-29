@@ -48,17 +48,20 @@ model User {
 }
 
 model Role {
-  id          String  @id @default(cuid())
-  code        String  @unique
+  id          String    @id @default(cuid())
+  code        String    @unique
   name        String
   description String?
-  isSystem    Boolean @default(true)
+  isSystem    Boolean   @default(false)
+  deletedAt   DateTime?
 
   users       User[]
   permissions RolePermission[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([deletedAt])
 }
 
 model Permission {

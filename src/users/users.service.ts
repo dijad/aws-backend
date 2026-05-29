@@ -58,8 +58,8 @@ export class UsersService {
     });
     if (exists) throw new ConflictException('Email already in use');
 
-    const role = await this.prisma.role.findUnique({
-      where: { code: dto.roleCode },
+    const role = await this.prisma.role.findFirst({
+      where: { code: dto.roleCode, deletedAt: null },
     });
     if (!role) throw new NotFoundException('Role not found');
 
@@ -84,8 +84,8 @@ export class UsersService {
 
     let roleId: string | undefined;
     if (dto.roleCode) {
-      const role = await this.prisma.role.findUnique({
-        where: { code: dto.roleCode },
+      const role = await this.prisma.role.findFirst({
+        where: { code: dto.roleCode, deletedAt: null },
       });
       if (!role) throw new NotFoundException('Role not found');
       roleId = role.id;
