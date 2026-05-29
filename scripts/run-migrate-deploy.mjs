@@ -1,8 +1,12 @@
 /**
  * Prisma migrate deploy against Cloud SQL (Cloud Build + container startup).
  * Requires: DB_TARGET=cloud-sql, CLOUD_SQL_CONNECTION_NAME, DB_USER, DB_PASSWORD, DB_NAME
+ *
+ * @see https://github.com/GoogleCloudPlatform/cloud-sql-nodejs-connector#using-a-local-proxy-tunnel-unix-domain-socket
  */
 import { spawnSync } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector';
 
 function required(name) {
@@ -20,9 +24,9 @@ function resolveConnectionName() {
   return `${project}:${region}:${instance}`;
 }
 
-function buildPostgresUrl({ user, password, database, schema, host, port }) {
-  const params = new URLSearchParams({ schema: schema || 'public' });
-  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}?${params.toString()}`;
+function buildPrismaSocketUrl({ user, password, database, schema, socketDir }) {
+  const params = new URLSearchParams({ host: socketDir, schema: schema || 'public' });
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@localhost/${encodeURIComponent(database)}?${params.toString()}`;
 }
 
 async function main() {
@@ -43,7 +47,10 @@ async function main() {
   const schema = process.env.DB_SCHEMA?.trim() || 'public';
   const instanceConnectionName = resolveConnectionName();
 
-  const port = Number(process.env.CLOUD_SQL_PROXY_PORT ?? 5432);
+  const socketDir =
+    process.env.CLOUD_SQL_SOCKET_DIR?.trim() ||
+    join(process.cwd(), '.cloud-sql-migrate');
+  await mkdir(socketDir, { recursive: true });
 
   const ipType =
     process.env.CLOUD_SQL_IP_TYPE?.trim().toUpperCase() === 'PRIVATE'
@@ -55,16 +62,15 @@ async function main() {
     await connector.startLocalProxy({
       instanceConnectionName,
       ipType,
-      listenOptions: { port },
+      listenOptions: { path: join(socketDir, '.s.PGSQL.5432') },
     });
 
-    process.env.DATABASE_URL = buildPostgresUrl({
+    process.env.DATABASE_URL = buildPrismaSocketUrl({
       user,
       password,
       database,
       schema,
-      host: '127.0.0.1',
-      port,
+      socketDir,
     });
 
     console.log(`Applying migrations (${instanceConnectionName}, db=${database})…`);
