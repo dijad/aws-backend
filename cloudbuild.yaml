@@ -37,7 +37,7 @@ steps:
         sleep 5
         npm ci
         npx prisma generate
-        export DATABASE_URL="postgresql://$${DB_USER}:$${DB_PASSWORD}@127.0.0.1:5432/$${DB_NAME}?schema=public"
+        export DATABASE_URL="postgresql://${_DB_USER}:$$DB_PASSWORD@127.0.0.1:5432/${_DB_NAME}?schema=public"
         npx prisma migrate deploy
     waitFor: ['-']
 
