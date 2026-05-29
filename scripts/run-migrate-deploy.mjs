@@ -5,8 +5,6 @@
  * @see https://github.com/GoogleCloudPlatform/cloud-sql-nodejs-connector#using-a-local-proxy-tunnel-unix-domain-socket
  */
 import { spawnSync } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import { Connector, IpAddressTypes } from '@google-cloud/cloud-sql-connector';
 
 function required(name) {
@@ -25,8 +23,11 @@ function resolveConnectionName() {
 }
 
 function buildPrismaSocketUrl({ user, password, database, schema, socketDir }) {
-  const params = new URLSearchParams({ host: socketDir, schema: schema || 'public' });
-  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@localhost/${encodeURIComponent(database)}?${params.toString()}`;
+  const schemaParam = schema || 'public';
+  return (
+    `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@localhost/` +
+    `${encodeURIComponent(database)}?host=${socketDir}&schema=${schemaParam}`
+  );
 }
 
 async function main() {
@@ -47,10 +48,7 @@ async function main() {
   const schema = process.env.DB_SCHEMA?.trim() || 'public';
   const instanceConnectionName = resolveConnectionName();
 
-  const socketDir =
-    process.env.CLOUD_SQL_SOCKET_DIR?.trim() ||
-    join(process.cwd(), '.cloud-sql-migrate');
-  await mkdir(socketDir, { recursive: true });
+  const socketDir = process.cwd();
 
   const ipType =
     process.env.CLOUD_SQL_IP_TYPE?.trim().toUpperCase() === 'PRIVATE'
@@ -62,7 +60,7 @@ async function main() {
     await connector.startLocalProxy({
       instanceConnectionName,
       ipType,
-      listenOptions: { path: join(socketDir, '.s.PGSQL.5432') },
+      listenOptions: { path: '.s.PGSQL.5432' },
     });
 
     process.env.DATABASE_URL = buildPrismaSocketUrl({
