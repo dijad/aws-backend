@@ -32,12 +32,12 @@ steps:
           https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.2/cloud-sql-proxy.linux.amd64
         chmod +x /tmp/cloud-sql-proxy
         /tmp/cloud-sql-proxy "${_CLOUD_SQL_CONNECTION}" --port=5432 &
-        PROXY_PID=$!
-        trap 'kill "${PROXY_PID}" 2>/dev/null || true' EXIT
+        PROXY_PID=$$!
+        trap 'kill "$$PROXY_PID" 2>/dev/null || true' EXIT
         sleep 5
         npm ci
         npx prisma generate
-        export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME}?schema=public"
+        export DATABASE_URL="postgresql://$${DB_USER}:$${DB_PASSWORD}@127.0.0.1:5432/$${DB_NAME}?schema=public"
         npx prisma migrate deploy
     waitFor: ['-']
 
