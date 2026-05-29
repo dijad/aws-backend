@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RolesService } from './roles.service';
+import { CreateRoleDto } from './dto/create-role.dto';
 import { SetRolePermissionsDto } from './dto/set-permissions.dto';
 import { Permissions } from '../common/decorators/permissions.decorator';
 
@@ -20,6 +21,13 @@ export class RolesController {
   @ApiOperation({ summary: 'List every available permission' })
   listPermissions() {
     return this.rolesSvc.listPermissions();
+  }
+
+  @Post('roles')
+  @Permissions('ROLE_MANAGE')
+  @ApiOperation({ summary: 'Create a custom role' })
+  createRole(@Body() dto: CreateRoleDto) {
+    return this.rolesSvc.createRole(dto);
   }
 
   @Put('roles/:id/permissions')
