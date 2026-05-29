@@ -26,38 +26,10 @@ steps:
     secretEnv: [DB_PASSWORD]
     entrypoint: bash
     args:
-      - -ceu
-      - |
-        curl -fsSL -o /tmp/cloud-sql-proxy \
-          https://storage.googleapis.com/cloud-sql-connectors/cloud-sql-proxy/v2.14.2/cloud-sql-proxy.linux.amd64
-        chmod +x /tmp/cloud-sql-proxy
-        /tmp/cloud-sql-proxy "${_CLOUD_SQL_CONNECTION}" --port=5432 &
-        PROXY_PID=$$!
-        trap 'kill "$$PROXY_PID" 2>/dev/null || true' EXIT
-        sleep 5
-        npm ci
-        npx prisma generate
-        export DATABASE_URL="postgresql://${_DB_USER}:$$DB_PASSWORD@127.0.0.1:5432/${_DB_NAME}?schema=public"
-        set +e
-        MIGRATE_OUT="$(npx prisma migrate deploy 2>&1)"
-        MIGRATE_CODE=$?
-        set -e
-        echo "$MIGRATE_OUT"
-        if [ "$MIGRATE_CODE" -eq 0 ]; then
-          exit 0
-        fi
-        if echo "$MIGRATE_OUT" | grep -q P3005; then
-          echo "Non-empty DB without Prisma history — applying SQL then baselining…"
-          for sql in prisma/migrations/*/migration.sql; do
-            npx prisma db execute --file "$sql" || true
-          done
-          for dir in prisma/migrations/*/; do
-            npx prisma migrate resolve --applied "$$(basename "$$dir")"
-          done
-          npx prisma migrate deploy
-        else
-          exit $$MIGRATE_CODE
-        fi
+      - scripts/gcp/migrate-deploy-cloudbuild.sh
+      - ${_CLOUD_SQL_CONNECTION}
+      - ${_DB_USER}
+      - ${_DB_NAME}
     waitFor: ['-']
 
   - id: build
