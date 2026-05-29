@@ -34,7 +34,7 @@ steps:
         export CLOUD_SQL_CONNECTION_NAME="${_CLOUD_SQL_CONNECTION}"
         export DB_USER="${_DB_USER}"
         export DB_NAME="${_DB_NAME}"
-        export CLOUD_SQL_SOCKET_DIR="/workspace/.cloud-sql-migrate"
+        export CLOUD_SQL_PROXY_PORT=5432
         node scripts/run-migrate-deploy.mjs
     waitFor: ['-']
 
