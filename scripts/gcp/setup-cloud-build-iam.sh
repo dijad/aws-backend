@@ -26,11 +26,11 @@ bind_sa() {
     --member="$1" --role="$3" --quiet >/dev/null
 }
 
-for role in storage.admin artifactregistry.writer run.developer cloudsql.client logging.logWriter; do
+for role in storage.admin artifactregistry.writer run.developer cloudsql.client logging.logWriter secretmanager.secretAccessor; do
   bind_project "serviceAccount:${COMPUTE_SA}" "roles/${role}"
 done
 
-for role in storage.admin artifactregistry.writer run.admin cloudsql.client iam.serviceAccountUser; do
+for role in storage.admin artifactregistry.writer run.admin cloudsql.client iam.serviceAccountUser secretmanager.secretAccessor; do
   bind_project "serviceAccount:${CLOUDBUILD_SA}" "roles/${role}"
 done
 

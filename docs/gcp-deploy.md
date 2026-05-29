@@ -62,9 +62,11 @@ export DB_APP_PASSWORD="$(openssl rand -base64 24)"
 
 Anota `CLOUD_SQL_CONNECTION_NAME` (`proyecto:region:instancia`).
 
-### Migraciones (antes del primer deploy)
+### Migraciones
 
-Desde tu máquina con ADC y `backend/.env` en modo `cloud-sql`:
+En cada `gcloud builds submit`, el paso **migrate** las aplica automáticamente.
+
+Manual (opcional), desde tu máquina con ADC y `DB_TARGET=cloud-sql` en `backend/.env`:
 
 ```bash
 npm run prisma:deploy
@@ -110,7 +112,15 @@ docker run --rm -p 8080:8080 \
 
 ### Cloud Build + deploy (pipeline completo)
 
-`cloudbuild.yaml` incluye sustituciones por defecto (región, Cloud SQL, URLs). Ajusta los valores `_…` en el archivo si cambian, luego:
+`cloudbuild.yaml` ejecuta en cada deploy:
+
+1. **migrate** — `prisma migrate deploy` contra Cloud SQL (Secret Manager `aws-db-password`)
+2. **build** / **push** — imagen Docker
+3. **deploy** — Cloud Run (solo si migrate terminó bien)
+
+La imagen también corre migraciones al arrancar (`docker-entrypoint.sh`) como respaldo. Para desactivarlas en runtime: `SKIP_DB_MIGRATIONS=true`.
+
+Ajusta los valores `_…` en el archivo si cambian, luego:
 
 ```bash
 cd backend

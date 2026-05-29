@@ -15,7 +15,29 @@ substitutions:
 options:
   logging: CLOUD_LOGGING_ONLY
 
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/aws-db-password/versions/latest
+      env: DB_PASSWORD
+
 steps:
+  - id: migrate
+    name: node:20-bookworm
+    secretEnv: [DB_PASSWORD]
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        npm ci
+        npx prisma generate
+        export DB_TARGET=cloud-sql
+        export CLOUD_SQL_CONNECTION_NAME="${_CLOUD_SQL_CONNECTION}"
+        export DB_USER="${_DB_USER}"
+        export DB_NAME="${_DB_NAME}"
+        export CLOUD_SQL_SOCKET_DIR="/workspace/.cloud-sql-migrate"
+        node scripts/run-migrate-deploy.mjs
+    waitFor: ['-']
+
   - id: build
     name: gcr.io/cloud-builders/docker
     args:
@@ -55,7 +77,7 @@ steps:
           --set-env-vars="DB_TARGET=cloud-sql,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_CONNECTION},DB_USER=${_DB_USER},DB_NAME=${_DB_NAME},NODE_ENV=production,CORS_ORIGIN=${_CORS_ORIGIN},FRONTEND_URL=${_FRONTEND_URL},EMAIL_ENABLED=true" \
           --set-secrets="DB_PASSWORD=aws-db-password:latest,JWT_ACCESS_SECRET=aws-jwt-access:latest,JWT_REFRESH_SECRET=aws-jwt-refresh:latest,RESEND_API_KEY=aws-resend-api-key:latest" \
           --add-cloudsql-instances="${_CLOUD_SQL_CONNECTION}"
-    waitFor: ['push']
+    waitFor: ['push', 'migrate']
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_IMAGE_NAME}:$BUILD_ID
